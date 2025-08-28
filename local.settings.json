@@ -1,0 +1,10 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "",
+    "FUNCTIONS_WORKER_RUNTIME": "python",
+    "MISTRAL_API_KEY": "your_key_here",
+    "MISTRAL_BASE_URL": "https://mistral-ai-ocr-resource.services.ai.azure.com",
+    "AZURE_STORAGE_CONNECTION_STRING": ""
+  }
+}
