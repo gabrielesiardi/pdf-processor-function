@@ -91,11 +91,22 @@ class MistralPDFProcessor:
                 return json.loads(json_match.group(1).strip())
             raise Exception("Could not parse JSON from response")
 
-    def process(self, pdf_base64: str, prompt: str) -> Dict[str, Any]:
+    def process(self, pdf_base64: str, prompt: str = None, return_raw: bool = False) -> Dict[str, Any]:
         """Main processing pipeline"""
         try:
             # Step 1: Extract text from PDF
             markdown_text = self.extract_text_from_pdf(pdf_base64)
+            
+            # If return_raw is True, return just the OCR data
+            if return_raw or not prompt:
+                return {
+                    "status": "success",
+                    "raw_data": markdown_text,
+                    "metadata": {
+                        "characters_extracted": len(markdown_text),
+                        "processing_timestamp": datetime.utcnow().isoformat()
+                    }
+                }
             
             # Step 2: Extract structured data using prompt
             structured_data = self.extract_data_with_prompt(markdown_text, prompt)
@@ -103,6 +114,7 @@ class MistralPDFProcessor:
             return {
                 "status": "success",
                 "data": structured_data,
+                "raw_data": markdown_text,  # Include raw data in response
                 "metadata": {
                     "characters_extracted": len(markdown_text),
                     "processing_timestamp": datetime.utcnow().isoformat()
@@ -132,12 +144,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         # Validate required parameters
         pdf_data = req_body.get('pdf_base64')
         prompt = req_body.get('prompt')
+        return_raw = req_body.get('return_raw', False)
         
-        if not pdf_data or not prompt:
+        if not pdf_data:
             return func.HttpResponse(
                 json.dumps({
-                    "error": "Missing required parameters",
-                    "required": ["pdf_base64", "prompt"],
+                    "error": "Missing required parameter: pdf_base64",
                     "received": list(req_body.keys())
                 }),
                 status_code=400,
@@ -146,7 +158,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         
         # Process PDF
         processor = MistralPDFProcessor()
-        result = processor.process(pdf_data, prompt)
+        result = processor.process(pdf_data, prompt, return_raw)
         
         return func.HttpResponse(
             json.dumps(result, indent=2, ensure_ascii=False),
